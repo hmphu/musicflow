@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8"/>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Fira+Code&display=swap');
+  
+  body {
+    font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif;
+    background: #ffffff;
+    color: #1a1a1a;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 40px 60px;
+    font-size: 14px;
+    line-height: 1.7;
+  }
+  h1 {
+    color: #1db954;
+    font-size: 32px;
+    border-bottom: 3px solid #1db954;
+    padding-bottom: 12px;
+    margin-top: 0;
+  }
+  h2 {
+    color: #1a1a1a;
+    font-size: 22px;
+    border-bottom: 1px solid #e0e0e0;
+    padding-bottom: 8px;
+    margin-top: 36px;
+  }
+  h3 {
+    color: #333;
+    font-size: 17px;
+    margin-top: 24px;
+  }
+  code {
+    font-family: 'Fira Code', 'Courier New', monospace;
+    background: #f4f4f4;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 12px;
+    color: #c7254e;
+  }
+  pre {
+    background: #1a1a2e;
+    color: #e0e0e0;
+    padding: 16px 20px;
+    border-radius: 8px;
+    overflow-x: auto;
+    font-size: 12px;
+    line-height: 1.5;
+    border-left: 4px solid #1db954;
+  }
+  pre code {
+    background: none;
+    color: #e0e0e0;
+    padding: 0;
+    font-size: 12px;
+  }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 16px 0;
+    font-size: 13px;
+  }
+  th {
+    background: #1db954;
+    color: white;
+    padding: 10px 14px;
+    text-align: left;
+    font-weight: 600;
+  }
+  td {
+    padding: 9px 14px;
+    border-bottom: 1px solid #e8e8e8;
+  }
+  tr:nth-child(even) td {
+    background: #f9f9f9;
+  }
+  blockquote {
+    border-left: 4px solid #1db954;
+    margin: 16px 0;
+    padding: 10px 20px;
+    background: #f0faf4;
+    color: #333;
+    border-radius: 0 8px 8px 0;
+    font-style: italic;
+  }
+  a { color: #1db954; text-decoration: none; }
+  ul, ol { padding-left: 24px; }
+  li { margin: 4px 0; }
+  img { max-width: 80px; display: block; margin: 0 auto 16px; }
+  
+  /* Cover page style for h1 */
+  .cover {
+    text-align: center;
+    padding: 60px 0 40px;
+    border-bottom: 2px solid #1db954;
+    margin-bottom: 40px;
+  }
+  .cover h1 {
+    font-size: 42px;
+    border: none;
+    padding: 0;
+    margin: 0 0 12px;
+  }
+  .cover .subtitle {
+    font-size: 16px;
+    color: #666;
+    margin: 8px 0;
+  }
+  .cover .version {
+    display: inline-block;
+    background: #1db954;
+    color: white;
+    padding: 4px 16px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 600;
+    margin-top: 12px;
+  }
+  
+  @media print {
+    body { padding: 20px 40px; }
+    pre { page-break-inside: avoid; }
+    h2 { page-break-before: auto; }
+  }
+</style>
+</head>
+<body>
+<div class="cover">
+  <div style="font-size:64px">🎵</div>
+  <h1>MusicFlow</h1>
+  <div class="subtitle">Ad-Free YouTube Music Player</div>
+  <div class="subtitle">Chrome Extension + Python Backend</div>
+  <div class="version">Version 7.0.0</div>
+  <div style="margin-top:16px;color:#999;font-size:12px">github.com/Sumitboii/musicflow</div>
+</div>
+<h1 id="musicflow-ad-free-youtube-music-player">🎵 MusicFlow — Ad-Free YouTube Music Player</h1>
+<p align="center">
+  <img src="icons/icon128.png" width="80" alt="MusicFlow Logo"/>
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/Version-7.0.0-1db954?style=for-the-badge"/>
+  <img src="https://img.shields.io/badge/Platform-Chrome_Extension-4285F4?style=for-the-badge&logo=google-chrome&logoColor=white"/>
+  <img src="https://img.shields.io/badge/Backend-Python_Flask-3776AB?style=for-the-badge&logo=python&logoColor=white"/>
+  <img src="https://img.shields.io/badge/Audio-yt--dlp-FF0000?style=for-the-badge&logo=youtube&logoColor=white"/>
+  <img src="https://img.shields.io/badge/Quota-Zero_API_Cost-1db954?style=for-the-badge"/>
+</p>
+
+<blockquote>
+<p><strong>A Spotify-style Chrome extension that streams YouTube music as audio-only — no ads, no login, no API quota limits, no YouTube tab ever opens.</strong></p>
+</blockquote>
+<hr />
+<h2 id="table-of-contents">📖 Table of Contents</h2>
+<ul>
+<li><a href="#-what-is-musicflow">What is MusicFlow?</a></li>
+<li><a href="#-how-it-works">How It Works</a></li>
+<li><a href="#-features">Features</a></li>
+<li><a href="#-architecture">Architecture</a></li>
+<li><a href="#-tech-stack">Tech Stack</a></li>
+<li><a href="#-setup">Setup</a></li>
+<li><a href="#-usage">Usage</a></li>
+<li><a href="#-keyboard-shortcuts">Keyboard Shortcuts</a></li>
+<li><a href="#-file-structure">File Structure</a></li>
+<li><a href="#-why-no-api-quota">Why No API Quota?</a></li>
+<li><a href="#-screenshots">Screenshots</a></li>
+</ul>
+<hr />
+<h2 id="what-is-musicflow">🤔 What is MusicFlow?</h2>
+<p>MusicFlow is a <strong>Chrome browser extension</strong> that turns YouTube into a pure music player — think Spotify, but powered by YouTube's massive library.</p>
+<p>The problem with YouTube for music:
+- 🔴 Ads every few minutes
+- 🔴 Video loads even when you just want audio (wastes bandwidth)
+- 🔴 You need a browser tab open and visible
+- 🔴 YouTube Premium costs money</p>
+<p>MusicFlow solves all of this:
+- ✅ <strong>Zero ads</strong> — audio is extracted directly, bypasses the ad system
+- ✅ <strong>Audio only</strong> — video never loads, saves 60-80% bandwidth
+- ✅ <strong>No visible tab</strong> — plays silently in the background via an offscreen document
+- ✅ <strong>Completely free</strong> — no subscription, no login, no account needed</p>
+<hr />
+<h2 id="how-it-works">⚙️ How It Works</h2>
+<p>MusicFlow has two parts working together:</p>
+<h3 id="1-chrome-extension-frontend">1. Chrome Extension (Frontend)</h3>
+<p>A Manifest V3 Chrome extension with:
+- <strong>Popup UI</strong> — Spotify-dark themed player with search, controls, playlists, lyrics
+- <strong>Background Service Worker</strong> — orchestrates messages between popup and player
+- <strong>Offscreen Document</strong> — a hidden HTML page with a <code>&lt;audio&gt;</code> element that plays the stream. The user never sees this page, but audio comes through the system speakers normally.</p>
+<h3 id="2-python-backend-local-server">2. Python Backend (Local Server)</h3>
+<p>A lightweight Flask server running on <code>localhost:7842</code> that uses <strong>yt-dlp</strong> to:
+- Search YouTube (no API key needed)
+- Extract direct audio stream URLs from YouTube videos
+- Fetch YouTube Radio mixes for "Up Next" song suggestions
+- Provide search autocomplete suggestions</p>
+<h3 id="the-flow">The Flow</h3>
+<pre><code>User types &quot;Arijit Singh&quot;
+        ↓
+Extension → Backend /search → yt-dlp searches YouTube → returns 20 results
+        ↓
+User clicks a song
+        ↓
+Extension → Backend /stream → yt-dlp extracts audio URL → returns direct m4a URL
+        ↓
+Extension → Offscreen &lt;audio src=&quot;...googlevideo.com/...&quot;&gt; → plays audio
+        ↓
+Windows Media Session API shows song name in system overlay
+</code></pre>
+<p>Everything happens locally on your machine. No data is sent to any third-party server.</p>
+<hr />
+<h2 id="features">✨ Features</h2>
+<h3 id="search">🔍 Search</h3>
+<ul>
+<li>Powered by <strong>yt-dlp</strong> — unlimited searches, zero API quota cost</li>
+<li>Smart search suggestions as you type (debounced, uses Google autocomplete — also zero quota)</li>
+<li>Results show thumbnail, title, channel, and duration</li>
+<li>Search results cached for 30 minutes — same query costs nothing on repeat</li>
+</ul>
+<h3 id="audio-playback">🎵 Audio Playback</h3>
+<ul>
+<li><strong>Audio-only streaming</strong> — yt-dlp extracts the lowest-quality video stream (240p) that still has full-quality audio, saving significant bandwidth</li>
+<li>Plays via a native HTML5 <code>&lt;audio&gt;</code> element in a hidden offscreen document</li>
+<li>No YouTube tab, no visible window, no browser tab clutter</li>
+<li>Stream URLs cached for ~6 hours — replaying same song is instant</li>
+</ul>
+<h3 id="player-controls">⏯️ Player Controls</h3>
+<ul>
+<li>Play / Pause</li>
+<li>Next / Previous song</li>
+<li>Seek bar with live time display</li>
+<li>Shuffle mode — random pick from queue</li>
+<li>Repeat mode — loop current song</li>
+<li>Volume slider with ¼ · ½ · ¾ · Full presets</li>
+<li>Mute toggle</li>
+</ul>
+<h3 id="playlists">💾 Playlists</h3>
+<ul>
+<li>Save any search results queue as a named playlist</li>
+<li>Load saved playlists with one click — auto-plays</li>
+<li>Import any YouTube URL directly:</li>
+<li>Single video: <code>youtube.com/watch?v=...</code></li>
+<li>Radio mix: <code>youtube.com/watch?v=...&amp;list=RD...&amp;start_radio=1</code></li>
+<li>Regular playlist: <code>youtube.com/playlist?list=PL...</code></li>
+<li>Playlists stored permanently in <code>chrome.storage</code> — survive browser restarts</li>
+</ul>
+<h3 id="up-next">📋 Up Next</h3>
+<ul>
+<li>Dedicated panel showing upcoming songs in the queue</li>
+<li>Pre-loaded from YouTube's Radio mix (similar songs) via yt-dlp</li>
+<li>Click any upcoming song to jump to it immediately</li>
+</ul>
+<h3 id="lyrics">🎤 Lyrics</h3>
+<ul>
+<li>One-click lyrics display for the currently playing song</li>
+<li>Powered by <a href="https://lyrics.ovh">lyrics.ovh</a> — free, no API key needed</li>
+<li>Auto-cleans song titles (strips "Official Video", "[HD]" etc.) for better matching</li>
+<li>Auto-fetches when you open the lyrics panel while a song plays</li>
+<li>Updates automatically when song changes</li>
+</ul>
+<h3 id="keyboard-shortcuts">⌨️ Keyboard Shortcuts</h3>
+<ul>
+<li><code>Space</code> — Play / Pause</li>
+<li><code>→</code> — Next song</li>
+<li><code>←</code> — Previous song</li>
+<li><code>M</code> — Mute / Unmute</li>
+</ul>
+<h3 id="windows-media-controls">🖥️ Windows Media Controls</h3>
+<ul>
+<li>Shows <strong>song name and artist</strong> in the Windows system media overlay</li>
+<li>All overlay buttons work: Play, Pause, Next, Previous</li>
+<li>Seek forward/back (10 seconds) also supported</li>
+</ul>
+<h3 id="auto-start">🚀 Auto-Start</h3>
+<ul>
+<li>Backend server placed in Windows Startup folder via <code>.vbs</code> script</li>
+<li>Runs <strong>silently in the background</strong> on every Windows login — no console window</li>
+<li>Extension has <strong>auto-retry</strong> — waits for backend to start before playing</li>
+</ul>
+<h3 id="state-persistence">🔄 State Persistence</h3>
+<ul>
+<li>Song name, artist, thumbnail restored when popup is reopened</li>
+<li>Progress bar and time restored to exact position</li>
+<li>Play/pause state correctly shown on reopen</li>
+<li>Volume saved permanently in localStorage</li>
+</ul>
+<hr />
+<h2 id="architecture">🏗️ Architecture</h2>
+<pre><code>┌─────────────────────────────────────────────────────────┐
+│                    Chrome Extension                      │
+│                                                         │
+│  ┌──────────┐    ┌──────────────────┐    ┌───────────┐ │
+│  │  Popup   │◄──►│  Background SW   │◄──►│ Offscreen │ │
+│  │  UI      │    │  (Orchestrator)  │    │  &lt;audio&gt;  │ │
+│  └──────────┘    └────────┬─────────┘    └───────────┘ │
+│                           │                             │
+└───────────────────────────┼─────────────────────────────┘
+                            │ HTTP (localhost only)
+                            ▼
+┌─────────────────────────────────────────────────────────┐
+│              Python Flask Backend (port 7842)           │
+│                                                         │
+│   /search   → yt-dlp ytsearch → YouTube results        │
+│   /stream   → yt-dlp → direct audio stream URL         │
+│   /radio    → yt-dlp playlist → related songs          │
+│   /suggest  → Google autocomplete → search hints       │
+│   /playlist → yt-dlp → any YouTube URL contents        │
+└─────────────────────────────────────────────────────────┘
+</code></pre>
+<h3 id="key-design-decisions">Key Design Decisions</h3>
+<table>
+<thead>
+<tr>
+<th>Decision</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Offscreen document for audio</td>
+<td>Service workers can't play audio; offscreen docs can</td>
+</tr>
+<tr>
+<td>Local Python backend</td>
+<td>Can't run yt-dlp inside a Chrome extension directly</td>
+</tr>
+<tr>
+<td>yt-dlp for everything</td>
+<td>YouTube Data API has 10,000 unit/day quota; yt-dlp has none</td>
+</tr>
+<tr>
+<td>Audio-only stream</td>
+<td>Saves 60-80% bandwidth vs full video</td>
+</tr>
+<tr>
+<td>Startup folder auto-start</td>
+<td>Task Scheduler needs admin rights; Startup folder doesn't</td>
+</tr>
+<tr>
+<td>Stream URL caching</td>
+<td>yt-dlp takes 2-5s per video; cache makes replays instant</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="tech-stack">🛠️ Tech Stack</h2>
+<table>
+<thead>
+<tr>
+<th>Layer</th>
+<th>Technology</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Extension UI</td>
+<td>HTML5, CSS3, JavaScript (Manifest V3)</td>
+</tr>
+<tr>
+<td>Extension APIs</td>
+<td><code>chrome.offscreen</code>, <code>chrome.storage</code>, <code>chrome.runtime</code>, <code>chrome.scripting</code></td>
+</tr>
+<tr>
+<td>Audio</td>
+<td>HTML5 <code>&lt;audio&gt;</code> element, Media Session API</td>
+</tr>
+<tr>
+<td>Backend</td>
+<td>Python 3, Flask, flask-cors</td>
+</tr>
+<tr>
+<td>YouTube interaction</td>
+<td>yt-dlp (no API key)</td>
+</tr>
+<tr>
+<td>Lyrics</td>
+<td>lyrics.ovh REST API</td>
+</tr>
+<tr>
+<td>Suggestions</td>
+<td>Google Suggest API (no key)</td>
+</tr>
+<tr>
+<td>Auto-start</td>
+<td>Windows VBScript + Startup folder</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="setup">📦 Setup</h2>
+<h3 id="requirements">Requirements</h3>
+<ul>
+<li>Windows 10 or 11</li>
+<li>Google Chrome (any recent version)</li>
+<li>Python 3.8 or higher</li>
+</ul>
+<h3 id="step-1-install-python-packages">Step 1 — Install Python packages</h3>
+<pre><code class="language-bash">pip install yt-dlp flask flask-cors
+</code></pre>
+<h3 id="step-2-start-the-backend-first-time-only">Step 2 — Start the backend (first time only)</h3>
+<pre><code class="language-bash">python server/server.py
+</code></pre>
+<p>Or double-click <code>server/start_server.bat</code></p>
+<p>The backend will now <strong>auto-start silently on every Windows login</strong> — you never need to do this again after the first time.</p>
+<h3 id="step-3-load-the-extension-in-chrome">Step 3 — Load the extension in Chrome</h3>
+<ol>
+<li>Open Chrome → go to <code>chrome://extensions</code></li>
+<li>Enable <strong>Developer mode</strong> (toggle in top right)</li>
+<li>Click <strong>Load unpacked</strong></li>
+<li>Select the <code>music.sortcut</code> folder</li>
+<li>Click the MusicFlow icon in your toolbar</li>
+</ol>
+<p>That's it — search for any song and click play.</p>
+<hr />
+<h2 id="usage">🎮 Usage</h2>
+<h3 id="basic-playback">Basic playback</h3>
+<ol>
+<li>Type a song or artist in the search box</li>
+<li>Click any result to play it</li>
+<li>Use the player controls at the bottom</li>
+</ol>
+<h3 id="import-a-youtube-playlist-or-radio-mix">Import a YouTube playlist or radio mix</h3>
+<ol>
+<li>Click the 📋 <strong>Playlists</strong> button in the header</li>
+<li>Click <strong>⬇ URL</strong></li>
+<li>Paste any YouTube URL (video, playlist, or radio mix link)</li>
+<li>Press Enter — it loads and starts playing automatically</li>
+</ol>
+<h3 id="save-your-queue-as-a-playlist">Save your queue as a playlist</h3>
+<ol>
+<li>Search for songs to build a queue</li>
+<li>Click the 📋 <strong>Playlists</strong> button</li>
+<li>Click <strong>+ Save Queue</strong></li>
+<li>Give it a name — saved forever</li>
+</ol>
+<h3 id="see-upcoming-songs">See upcoming songs</h3>
+<ol>
+<li>Click the <strong>Up Next</strong> button (↙ icon) in the header</li>
+<li>See the pre-loaded related songs</li>
+<li>Click any to play it immediately</li>
+</ol>
+<h3 id="get-lyrics">Get lyrics</h3>
+<ol>
+<li>Play any song</li>
+<li>Click the ℹ️ <strong>Lyrics</strong> button in the header</li>
+<li>Lyrics appear automatically</li>
+</ol>
+<hr />
+<h2 id="keyboard-shortcuts_1">⌨️ Keyboard Shortcuts</h2>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Space</code></td>
+<td>Play / Pause</td>
+</tr>
+<tr>
+<td><code>→</code> Arrow</td>
+<td>Next song</td>
+</tr>
+<tr>
+<td><code>←</code> Arrow</td>
+<td>Previous song</td>
+</tr>
+<tr>
+<td><code>M</code></td>
+<td>Mute / Unmute</td>
+</tr>
+<tr>
+<td><code>↑</code> / <code>↓</code> (in search)</td>
+<td>Navigate suggestions</td>
+</tr>
+<tr>
+<td><code>Esc</code> (in search)</td>
+<td>Close suggestions</td>
+</tr>
+<tr>
+<td><code>Enter</code> (in search)</td>
+<td>Search</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="file-structure">📁 File Structure</h2>
+<pre><code>music.sortcut/
+├── manifest.json              Chrome extension config (Manifest V3)
+├── popup.html                 Main UI layout
+├── popup.css                  Spotify-dark theme styles
+├── popup.js                   All player logic:
+│                                - Search &amp; suggestions
+│                                - Playback controls
+│                                - Playlist management
+│                                - Lyrics fetching
+│                                - State persistence
+│                                - Keyboard shortcuts
+├── background.js              Service worker:
+│                                - Manages offscreen document lifecycle
+│                                - Fetches stream URLs from backend
+│                                - Routes messages between components
+├── offscreen.html             Hidden audio player page
+├── offscreen.js               Audio element controller:
+│                                - Plays stream URLs
+│                                - Media Session API (Windows overlay)
+│                                - Forwards media key events
+├── content.js                 (Reference only)
+├── icons/
+│   ├── icon16.png
+│   ├── icon48.png
+│   └── icon128.png
+└── server/
+    ├── server.py              Flask backend:
+    │                            - /search  — yt-dlp YouTube search
+    │                            - /stream  — audio URL extraction
+    │                            - /radio   — YouTube Radio mix
+    │                            - /suggest — search autocomplete
+    │                            - /playlist — load any YouTube URL
+    ├── start_server.bat       Manual start (with console window)
+    └── start_server_silent.vbs  Auto-start on Windows login (silent)
+</code></pre>
+<hr />
+<h2 id="why-no-api-quota">💡 Why No API Quota?</h2>
+<p>The YouTube Data API v3 gives 10,000 units/day free. Each search costs 100 units = only 100 searches/day. That runs out fast.</p>
+<p>MusicFlow uses <strong>zero YouTube Data API quota</strong> because:</p>
+<ul>
+<li><strong>Search</strong> → <code>yt-dlp ytsearch20:query</code> — scrapes YouTube search results directly</li>
+<li><strong>Stream URL</strong> → <code>yt-dlp --get-url</code> — extracts the video's audio stream URL</li>
+<li><strong>Radio/Up Next</strong> → <code>yt-dlp --flat-playlist</code> on the radio mix URL</li>
+<li><strong>Suggestions</strong> → Google's public autocomplete endpoint (no key needed)</li>
+<li><strong>Lyrics</strong> → lyrics.ovh (completely separate service, free)</li>
+</ul>
+<p>The only remaining use of the YouTube Data API key in the code is as a fallback reference — it's never actually called during normal use.</p>
+<hr />
+<h2 id="license">📄 License</h2>
+<p>MIT License — free to use, modify, and distribute.</p>
+<hr />
+<h2 id="credits">🙏 Credits</h2>
+<ul>
+<li><a href="https://github.com/yt-dlp/yt-dlp">yt-dlp</a> — the engine that makes everything possible</li>
+<li><a href="https://lyrics.ovh">lyrics.ovh</a> — free lyrics API</li>
+<li><a href="https://flask.palletsprojects.com/">Flask</a> — lightweight Python web framework</li>
+<li>Inspired by Spotify's UI design language</li>
+</ul>
+<hr />
+<p align="center">Built with ❤️ by <a href="https://github.com/Sumitboii">Sumitboii</a></p>
+</body>
+</html>
