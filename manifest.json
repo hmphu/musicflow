@@ -1,0 +1,35 @@
+{
+  "manifest_version": 3,
+  "name": "MusicFlow — Ad-Free Player",
+  "version": "7.0.0",
+  "description": "Spotify-like music player powered by YouTube. No ads, no login needed.",
+  "permissions": [
+    "storage",
+    "offscreen"
+  ],
+  "host_permissions": [
+    "https://www.googleapis.com/*",
+    "http://127.0.0.1:7842/*",
+    "https://*.googlevideo.com/*",
+    "https://api.lyrics.ovh/*"
+  ],
+  "content_security_policy": {
+    "extension_pages": "default-src 'self'; script-src 'self'; connect-src https://www.googleapis.com http://127.0.0.1:7842 https://*.googlevideo.com https://api.lyrics.ovh; media-src https://*.googlevideo.com blob:; img-src 'self' https: data:; style-src 'self' 'unsafe-inline'"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}

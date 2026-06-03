@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<!-- Open this file in your browser to generate the icon PNGs -->
+<html>
+<head><title>Generate Icons</title></head>
+<body>
+<p>Right-click each canvas → "Save image as..." → save to the <code>icons/</code> folder with the correct filename.</p>
+
+<script>
+function makeIcon(size, label) {
+  const canvas = document.createElement('canvas');
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext('2d');
+
+  // Background
+  const grad = ctx.createLinearGradient(0, 0, size, size);
+  grad.addColorStop(0, '#1a1a2e');
+  grad.addColorStop(1, '#0d0d0d');
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  ctx.roundRect(0, 0, size, size, size * 0.2);
+  ctx.fill();
+
+  // Music note
+  ctx.fillStyle = '#1db954';
+  ctx.font = `bold ${size * 0.55}px serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('♪', size / 2, size / 2);
+
+  canvas.title = label;
+  canvas.style.margin = '10px';
+  canvas.style.border = '1px solid #ccc';
+  document.body.appendChild(canvas);
+
+  const link = document.createElement('a');
+  link.href = canvas.toDataURL('image/png');
+  link.download = label;
+  link.textContent = `Download ${label}`;
+  link.style.display = 'block';
+  link.style.margin = '0 10px 20px';
+  document.body.appendChild(link);
+}
+
+makeIcon(16, 'icon16.png');
+makeIcon(48, 'icon48.png');
+makeIcon(128, 'icon128.png');
+</script>
+</body>
+</html>
