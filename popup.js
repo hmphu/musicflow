@@ -3,8 +3,8 @@
  * Features: search suggestions, playlist save/load, lyrics, hotkeys
  */
 
-// API key kept only as fallback reference — not used for search or suggestions
-const YT_API_KEY = 'REMOVED';
+// API key removed — search now uses yt-dlp backend (zero quota, no key needed)
+const YT_API_KEY = '';
 
 let queue        = [];
 let currentIndex = -1;
