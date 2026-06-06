@@ -1,4 +1,4 @@
-/**
+﻿/**
  * MusicFlow — popup.js v7
  * Features: search suggestions, playlist save/load, lyrics, hotkeys
  */
@@ -113,7 +113,7 @@ function startProgress() {
       totalTimeEl.textContent   = fmt(dur);
       progressRange.dataset.dur = dur;
     }
-  }, 1000);
+  }, 2000);
 }
 function stopProgress() {
   if (progressTimer) { clearInterval(progressTimer); progressTimer = null; }
@@ -160,7 +160,8 @@ async function playTrack(index) {
   });
 
   // Pre-load radio queue in background so Next is instant (uses yt-dlp, no API quota)
-  if (!radioQueue.length) loadRadioQueue(t.id);
+  // Only load if queue has just 1 track (direct play, not from a search result list)
+  if (!radioQueue.length && queue.length <= 1) loadRadioQueue(t.id);
 
   // Auto-fetch lyrics if lyrics panel is open
   if (!lyricsPanel.classList.contains('hidden')) fetchLyrics(t.title, t.channel);
@@ -273,6 +274,11 @@ async function search(query) {
     searchCache.set(query.toLowerCase(), { queue: [...queue], timestamp: Date.now() });
     renderList();
     showLoading(false);
+
+    // Pre-warm the first result's stream URL in the background (makes first click instant)
+    if (queue.length > 0) {
+      fetch(`http://127.0.0.1:7842/stream?v=${encodeURIComponent(queue[0].id)}`).catch(() => {});
+    }
   } catch(err) {
     showLoading(false);
     showError(`Error: ${err.message}`);
@@ -710,5 +716,8 @@ closeUpnextBtn.addEventListener('click', () => upnextPanel.classList.add('hidden
     }
   }
 
-  search('top hits 2025');
+  // Only auto-search if nothing is currently playing (don't interrupt an active session)
+  if (!mf_nowplaying) {
+    search('top hits 2025');
+  }
 })();
