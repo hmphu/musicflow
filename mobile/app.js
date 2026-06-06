@@ -49,49 +49,6 @@ async function search(q) {
   $('spinner').classList.add('hidden');
 }
 
-// ── Get stream URL — tries multiple sources ───────────────────────────────────
-async function getStreamUrl(videoId) {
-  // Source 1: cobalt.tools API (free, no key, works from browser)
-  try {
-    const r = await fetch('https://co.wuk.sh/api/json', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-      body: JSON.stringify({ url: `https://youtu.be/${videoId}`, isAudioOnly: true, aFormat: 'mp3' }),
-      signal: AbortSignal.timeout(15000),
-    });
-    if (r.ok) {
-      const d = await r.json();
-      if (d.url) return d.url;
-      if (d.status === 'stream' && d.url) return d.url;
-    }
-  } catch {}
-
-  // Source 2: piped.video proxy stream
-  try {
-    const r = await fetch(`https://pipedapi.kavin.rocks/streams/${videoId}`, {
-      signal: AbortSignal.timeout(8000)
-    });
-    if (r.ok) {
-      const d = await r.json();
-      const audio = (d.audioStreams || []).filter(s => s.mimeType?.includes('audio'));
-      if (audio.length) return audio[0].url;
-    }
-  } catch {}
-
-  // Source 3: HF backend (slowest, last resort)
-  try {
-    const r = await fetch(`${HF}/stream?v=${encodeURIComponent(videoId)}`, {
-      signal: AbortSignal.timeout(55000)
-    });
-    if (r.ok) {
-      const d = await r.json();
-      if (d.url) return d.url;
-    }
-  } catch {}
-
-  return null;
-}
-
 // ── Play ──────────────────────────────────────────────────────────────────────
 async function playTrack(i) {
   if (i < 0 || i >= queue.length) return;
@@ -110,13 +67,14 @@ async function playTrack(i) {
 
   try {
     showErr('Loading…', '#1db954');
-    
-    // Use YouTube's iframe/embed to get audio — works from any browser
-    // We proxy through a CORS-friendly endpoint
-    const streamUrl = await getStreamUrl(t.id);
-    if (!streamUrl) throw new Error('Could not get audio stream');
-
-    audio.src = streamUrl;
+    // Get stream URL from HF, then play via HF proxy (avoids CORS on googlevideo.com)
+    const r = await fetch(`${HF}/stream?v=${encodeURIComponent(t.id)}`, { signal: AbortSignal.timeout(55000) });
+    const d = await r.json();
+    if (!r.ok || d.error) throw new Error(d.error || 'Stream failed');
+    if (!d.url) throw new Error('No stream URL');
+    // Play via proxy so CORS is not an issue
+    const proxyUrl = `${HF}/proxy?url=${encodeURIComponent(d.url)}`;
+    audio.src = proxyUrl;
     audio.volume = volume / 100;
     audio.currentTime = 0;
     await audio.play();

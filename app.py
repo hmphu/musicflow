@@ -96,6 +96,40 @@ def stream():
         return jsonify({"error": str(e)}), 500
 
 
+@app.route("/proxy")
+def proxy():
+    """Proxy the audio stream bytes through HF — phone plays directly, no CORS issues."""
+    import urllib.request as ur
+    from flask import Response, stream_with_context
+    audio_url = request.args.get("url", "").strip()
+    if not audio_url:
+        return jsonify({"error": "Missing url"}), 400
+    try:
+        req_headers = {"User-Agent": "Mozilla/5.0"}
+        if request.headers.get("Range"):
+            req_headers["Range"] = request.headers.get("Range")
+        req = ur.Request(audio_url, headers=req_headers)
+        resp = ur.urlopen(req, timeout=15)
+        def generate():
+            while True:
+                chunk = resp.read(65536)
+                if not chunk: break
+                yield chunk
+        status = 206 if request.headers.get("Range") else 200
+        out_headers = {
+            "Content-Type": resp.headers.get("Content-Type", "audio/mp4"),
+            "Accept-Ranges": "bytes",
+            "Access-Control-Allow-Origin": "*",
+        }
+        if resp.headers.get("Content-Length"):
+            out_headers["Content-Length"] = resp.headers["Content-Length"]
+        if resp.headers.get("Content-Range"):
+            out_headers["Content-Range"] = resp.headers["Content-Range"]
+        return Response(stream_with_context(generate()), status=status, headers=out_headers)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 @app.route("/suggest")
 def suggest():
     query = request.args.get("q", "").strip()
