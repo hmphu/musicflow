@@ -716,8 +716,5 @@ closeUpnextBtn.addEventListener('click', () => upnextPanel.classList.add('hidden
     }
   }
 
-  // Only auto-search if nothing is currently playing (don't interrupt an active session)
-  if (!mf_nowplaying) {
-    search('top hits 2025');
-  }
+  search('top hits 2025');
 })();
