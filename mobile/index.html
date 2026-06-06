@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"/>
+  <meta name="theme-color" content="#0d0d0d"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <meta name="apple-mobile-web-app-title" content="MusicFlow"/>
+  <title>MusicFlow</title>
+  <link rel="manifest" href="manifest.json"/>
+  <link rel="apple-touch-icon" href="icon.png"/>
+  <style>
+    :root{--bg:#0d0d0d;--bg2:#181818;--bg3:#242424;--bg4:#2e2e2e;--green:#1db954;--green2:#1ed760;--text:#fff;--text2:#b3b3b3;--text3:#555;}
+    *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+    html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-system,'Helvetica Neue',Arial,sans-serif;font-size:15px;overscroll-behavior:none;overflow:hidden;}
+    #app{display:flex;flex-direction:column;height:100dvh;overflow:hidden;}
+    .header{display:flex;align-items:center;justify-content:space-between;padding:calc(14px + env(safe-area-inset-top,0px)) 16px 12px;background:linear-gradient(135deg,#1a1a2e,#16213e);flex-shrink:0;}
+    .logo{display:flex;align-items:center;gap:8px;}
+    .logo-icon{font-size:26px;color:var(--green);animation:glow 2s infinite;}
+    @keyframes glow{0%,100%{text-shadow:0 0 4px var(--green);}50%{text-shadow:0 0 18px var(--green);}}
+    .logo-text{font-size:22px;font-weight:800;background:linear-gradient(135deg,#1db954,#4af085);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+    .header-btns{display:flex;gap:2px;}
+    .search-section{background:var(--bg2);flex-shrink:0;position:relative;border-bottom:1px solid #1e1e1e;}
+    .search-row{display:flex;align-items:center;gap:10px;padding:10px 14px;}
+    .search-row input{flex:1;background:var(--bg3);border:1.5px solid #2e2e2e;border-radius:24px;padding:11px 18px;color:var(--text);font-size:15px;outline:none;-webkit-appearance:none;}
+    .search-row input:focus{border-color:var(--green);}
+    .search-row input::placeholder{color:var(--text3);}
+    .search-btn{width:44px;height:44px;background:var(--green);border:none;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#000;cursor:pointer;flex-shrink:0;}
+    .search-btn:active{background:var(--green2);}
+    .suggestions{position:absolute;left:0;right:0;top:100%;background:var(--bg3);z-index:100;list-style:none;max-height:220px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,.7);border-bottom:1px solid #2a2a2a;}
+    .sug-item{display:flex;align-items:center;gap:12px;padding:12px 16px;cursor:pointer;font-size:14px;color:var(--text2);border-bottom:1px solid #1e1e1e;}
+    .sug-item:active{background:var(--bg4);}
+    .chips-row{display:flex;gap:8px;padding:10px 14px;overflow-x:auto;background:var(--bg2);flex-shrink:0;scrollbar-width:none;border-bottom:1px solid #1e1e1e;}
+    .chips-row::-webkit-scrollbar{display:none;}
+    .chip{flex-shrink:0;background:var(--bg3);border:1.5px solid #2e2e2e;border-radius:20px;color:var(--text2);font-size:13px;padding:7px 15px;cursor:pointer;white-space:nowrap;}
+    .chip.active{background:var(--green);border-color:var(--green);color:#000;font-weight:700;}
+    .results-wrap{flex:1;overflow-y:auto;background:var(--bg);-webkit-overflow-scrolling:touch;scrollbar-width:none;}
+    .results-wrap::-webkit-scrollbar{display:none;}
+    .results-list{list-style:none;}
+    .result-item{display:flex;align-items:center;gap:12px;padding:10px 16px;cursor:pointer;border-bottom:1px solid #181818;}
+    .result-item:active{background:var(--bg2);}
+    .result-item.playing{background:rgba(29,185,84,.08);}
+    .result-item.playing .r-title{color:var(--green);}
+    .r-thumb{width:54px;height:54px;border-radius:8px;object-fit:cover;background:var(--bg3);flex-shrink:0;}
+    .r-meta{flex:1;min-width:0;}
+    .r-title{font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .r-channel{font-size:12px;color:var(--text2);margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .r-dur{font-size:12px;color:var(--text3);flex-shrink:0;}
+    .spinner{display:flex;justify-content:center;padding:40px;}
+    .spinner::after{content:'';width:36px;height:36px;border:3px solid var(--bg3);border-top-color:var(--green);border-radius:50%;animation:spin .75s linear infinite;}
+    @keyframes spin{to{transform:rotate(360deg);}}
+    .hidden{display:none!important;}
+    .err-msg{padding:20px;color:#ff6b6b;font-size:14px;text-align:center;}
+    .sheet{position:fixed;left:0;right:0;bottom:0;background:var(--bg2);border-radius:22px 22px 0 0;z-index:200;display:flex;flex-direction:column;max-height:85dvh;box-shadow:0 -6px 40px rgba(0,0,0,.8);padding-bottom:env(safe-area-inset-bottom,0px);}
+    .sheet-handle{width:38px;height:4px;background:var(--bg4);border-radius:2px;margin:12px auto 0;flex-shrink:0;}
+    .sheet-header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;font-size:16px;font-weight:700;border-bottom:1px solid #242424;flex-shrink:0;}
+    .playlist-ul{list-style:none;overflow-y:auto;flex:1;padding:4px 0;}
+    .pl-item{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;cursor:pointer;border-bottom:1px solid #1e1e1e;}
+    .pl-item:active{background:var(--bg3);}
+    .pl-name{font-size:14px;font-weight:600;}
+    .pl-count{font-size:12px;color:var(--text3);margin-top:3px;}
+    .pl-del{background:none;border:none;color:var(--text3);font-size:20px;padding:4px 8px;cursor:pointer;}
+    .pl-empty{padding:30px;text-align:center;color:var(--text3);font-size:13px;}
+    .lyrics-body{padding:16px;overflow-y:auto;flex:1;font-size:15px;line-height:2;color:var(--text2);white-space:pre-wrap;}
+    .dim{color:var(--text3);text-align:center;padding-top:20px;}
+    .load-url-toggle{background:none;border:none;color:var(--green);font-size:13px;padding:10px 16px;cursor:pointer;border-bottom:1px solid #1e1e1e;text-align:left;width:100%;flex-shrink:0;}
+    .url-row{display:flex;gap:8px;padding:10px 16px;border-bottom:1px solid #242424;flex-shrink:0;}
+    .url-row input{flex:1;background:var(--bg3);border:1px solid #333;border-radius:10px;padding:9px 12px;color:var(--text);font-size:13px;outline:none;}
+    .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);display:flex;align-items:center;justify-content:center;z-index:300;}
+    .modal{background:var(--bg2);border-radius:18px;padding:24px;width:88%;max-width:340px;display:flex;flex-direction:column;gap:14px;}
+    .modal-title{font-size:17px;font-weight:700;}
+    .modal-input{background:var(--bg3);border:1.5px solid #333;border-radius:12px;padding:12px 14px;color:var(--text);font-size:15px;outline:none;}
+    .modal-input:focus{border-color:var(--green);}
+    .modal-btns{display:flex;gap:10px;justify-content:flex-end;}
+    .icon-btn{background:none;border:none;color:var(--text2);padding:9px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+    .icon-btn:active{color:var(--green);}
+    .pill-btn{background:var(--bg3);border:1.5px solid #333;border-radius:20px;color:var(--text2);font-size:13px;padding:8px 16px;cursor:pointer;}
+    .pill-btn.green{background:var(--green);border-color:var(--green);color:#000;font-weight:700;}
+    .now-playing{background:linear-gradient(180deg,#1e1e1e,#111);border-top:1px solid #2a2a2a;padding:12px 16px calc(12px + env(safe-area-inset-bottom,0px));flex-shrink:0;}
+    .track-row{display:flex;align-items:center;gap:12px;margin-bottom:10px;}
+    .track-thumb{width:52px;height:52px;border-radius:10px;object-fit:cover;background:var(--bg3);flex-shrink:0;}
+    .track-info{flex:1;min-width:0;}
+    .track-title{font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .track-artist{font-size:12px;color:var(--text2);margin-top:3px;}
+    .prog-row{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+    .time{font-size:11px;color:var(--text3);width:32px;flex-shrink:0;}
+    .time.right{text-align:right;}
+    .prog-bar{position:relative;flex:1;height:4px;background:var(--bg3);border-radius:2px;}
+    .prog-fill{position:absolute;left:0;top:0;height:100%;background:var(--green);border-radius:2px;pointer-events:none;transition:width .5s linear;}
+    .prog-range{position:absolute;inset:-12px 0;width:100%;height:calc(100% + 24px);opacity:0;cursor:pointer;margin:0;}
+    .controls{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+    .ctrl-btn{background:none;border:none;color:var(--text2);cursor:pointer;display:flex;align-items:center;justify-content:center;padding:8px;border-radius:50%;}
+    .ctrl-btn:active{transform:scale(.88);}
+    .ctrl-btn.active{color:var(--green);}
+    .play-btn{width:60px;height:60px;background:var(--green);color:#000;border-radius:50%;padding:0;box-shadow:0 4px 20px rgba(29,185,84,.4);}
+    .play-btn:active{background:var(--green2);transform:scale(.93);}
+    .vol-row{display:flex;align-items:center;gap:10px;}
+    .vol-slider{flex:1;height:4px;-webkit-appearance:none;appearance:none;background:linear-gradient(to right,var(--green) 80%,var(--bg3) 80%);border-radius:2px;outline:none;}
+    .vol-slider::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;background:#fff;border-radius:50%;cursor:pointer;}
+  </style>
+</head>
+<body>
+<div id="app">
+  <header class="header">
+    <div class="logo"><span class="logo-icon">♪</span><span class="logo-text">MusicFlow</span></div>
+    <div class="header-btns">
+      <button class="icon-btn" id="lyricsBtn"><svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M12 3C6.48 3 2 6.92 2 11.7c0 2.65 1.35 5.01 3.47 6.57L5 21l3.44-1.73C9.42 19.71 10.68 20 12 20c5.52 0 10-3.92 10-8.3C22 6.92 17.52 3 12 3zm1 12h-2v-2h2v2zm0-4h-2V7h2v4z"/></svg></button>
+      <button class="icon-btn" id="playlistBtn"><svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M3 6h15v2H3zm0 4h15v2H3zm0 4h10v2H3zm14 1v6l5-3z"/></svg></button>
+    </div>
+  </header>
+  <div class="search-section">
+    <div class="search-row">
+      <input type="search" id="searchInput" placeholder="Search songs, artists..." autocomplete="off" autocorrect="off" autocapitalize="off" enterkeyhint="search"/>
+      <button class="search-btn" id="searchBtn"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></button>
+    </div>
+    <ul id="suggestions" class="suggestions hidden"></ul>
+  </div>
+  <div class="chips-row">
+    <button class="chip active" data-query="top hits 2025">🔥 Top</button>
+    <button class="chip" data-query="chill lofi music">😌 Lofi</button>
+    <button class="chip" data-query="bollywood hits">🎬 Bollywood</button>
+    <button class="chip" data-query="pop music">🎵 Pop</button>
+    <button class="chip" data-query="hip hop">🎤 Hip-Hop</button>
+    <button class="chip" data-query="rock music">🎸 Rock</button>
+    <button class="chip" data-query="punjabi songs">🌟 Punjabi</button>
+  </div>
+  <div class="results-wrap">
+    <div id="spinner" class="spinner hidden"></div>
+    <div id="errMsg" class="err-msg hidden"></div>
+    <ul id="resultsList" class="results-list"></ul>
+  </div>
+  <div class="sheet hidden" id="lyricsSheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header"><span id="lyricsTitle">Lyrics</span><button class="icon-btn" id="closeLyrics">✕</button></div>
+    <div id="lyricsBody" class="lyrics-body"><p class="dim">Play a song to see lyrics</p></div>
+  </div>
+  <div class="sheet hidden" id="playlistSheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header"><span>My Playlists</span><div style="display:flex;gap:8px;align-items:center"><button class="pill-btn" id="saveQueueBtn">+ Save</button><button class="icon-btn" id="closePlaylists">✕</button></div></div>
+    <button class="load-url-toggle" id="loadUrlToggle">⬇ Load YouTube URL</button>
+    <div class="url-row hidden" id="urlRow"><input type="url" id="urlInput" placeholder="Paste YouTube URL..."/><button class="pill-btn green" id="urlLoadBtn">Load</button></div>
+    <ul id="playlistList" class="playlist-ul"></ul>
+  </div>
+  <div class="modal-overlay hidden" id="saveModal">
+    <div class="modal">
+      <div class="modal-title">Save Playlist</div>
+      <input id="plNameInput" class="modal-input" placeholder="Playlist name..." maxlength="40"/>
+      <div class="modal-btns"><button class="pill-btn green" id="modalSave">Save</button><button class="pill-btn" id="modalCancel">Cancel</button></div>
+    </div>
+  </div>
+  <div class="now-playing">
+    <div class="track-row">
+      <img id="trackThumb" src="" alt="" class="track-thumb"/>
+      <div class="track-info"><div id="trackTitle" class="track-title">No track selected</div><div id="trackArtist" class="track-artist">—</div></div>
+      <button class="icon-btn" id="addToPlBtn"><svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg></button>
+    </div>
+    <div class="prog-row">
+      <span id="curTime" class="time">0:00</span>
+      <div class="prog-bar"><div class="prog-fill" id="progFill"></div><input type="range" id="progRange" min="0" max="100" value="0" class="prog-range"/></div>
+      <span id="totTime" class="time right">0:00</span>
+    </div>
+    <div class="controls">
+      <button class="ctrl-btn" id="shuffleBtn"><svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M10.59 9.17L5.41 4 4 5.41l5.17 5.17zm4.76-.18l3.15 3.01-3.15 3.01V13h-1.51l-2.09-2.09 1.41-1.41L14 11h.35V9zm-4.76 6.01L5.41 20 4 18.59l5.17-5.17zm9.26-3.83h-2v1.59l-2.09-2.09-1.41 1.41 3.5 3.5 2-1.91V15h2v-4h-2z"/></svg></button>
+      <button class="ctrl-btn" id="prevBtn"><svg viewBox="0 0 24 24" width="30" height="30" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg></button>
+      <button class="ctrl-btn play-btn" id="playBtn">
+        <svg id="playIcon" viewBox="0 0 24 24" width="34" height="34" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+        <svg id="pauseIcon" viewBox="0 0 24 24" width="34" height="34" fill="currentColor" class="hidden"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+      </button>
+      <button class="ctrl-btn" id="nextBtn"><svg viewBox="0 0 24 24" width="30" height="30" fill="currentColor"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg></button>
+      <button class="ctrl-btn" id="repeatBtn"><svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z"/></svg></button>
+    </div>
+    <div class="vol-row">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" style="color:var(--text3);flex-shrink:0"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/></svg>
+      <input type="range" id="volSlider" min="0" max="100" value="80" class="vol-slider"/>
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" style="color:var(--text3);flex-shrink:0"><path d="M3 9v6h4l5 5V4L7 9H3zm10.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
+    </div>
+  </div>
+</div>
+<audio id="audioEl" preload="none"></audio>
+<script src="app.js"></script>
+</body>
+</html>
