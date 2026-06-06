@@ -1,14 +1,6 @@
 'use strict';
 
-// ── Invidious instances — search & stream directly from browser ───────────────
-const INV = [
-  'https://invidious.nerdvpn.de',
-  'https://invidious.f5.si',
-  'https://inv.nadeko.net',
-  'https://yt.chocolatemoo53.com',
-];
-
-// HF backend — fallback for stream only
+// ── HuggingFace backend — search + stream ────────────────────────────────────
 const HF = 'https://sumit9922-musicflow-backend.hf.space';
 
 // ── State ─────────────────────────────────────────────────────────────────────
@@ -22,75 +14,38 @@ const cache = new Map();
 const $ = id => document.getElementById(id);
 const audio = $('audioEl');
 
-// ── Invidious search ──────────────────────────────────────────────────────────
-async function invSearch(q) {
-  const enc = encodeURIComponent(q);
-  for (const base of INV) {
-    try {
-      const r = await fetch(
-        `${base}/api/v1/search?q=${enc}&type=video&fields=videoId,title,author,lengthSeconds,videoThumbnails`,
-        { signal: AbortSignal.timeout(6000) }
-      );
-      if (!r.ok) continue;
-      const data = await r.json();
-      if (!Array.isArray(data) || !data.length) continue;
-      return data.slice(0, 15).map(v => {
-        const secs = v.lengthSeconds || 0;
-        const thumbs = v.videoThumbnails || [];
-        const thumb = (thumbs.find(t => t.quality === 'medium') || thumbs[0] || {}).url
-          || `https://i.ytimg.com/vi/${v.videoId}/mqdefault.jpg`;
-        return {
-          id: v.videoId, title: v.title || '', channel: v.author || '',
-          thumb: thumb.startsWith('http') ? thumb : `https://i.ytimg.com/vi/${v.videoId}/mqdefault.jpg`,
-          dur: secs ? `${Math.floor(secs/60)}:${String(secs%60).padStart(2,'0')}` : '',
-        };
-      }).filter(t => t.id && t.title);
-    } catch { continue; }
-  }
-  return null;
-}
-
-// ── Invidious stream ──────────────────────────────────────────────────────────
-async function invStream(videoId) {
-  for (const base of INV) {
-    try {
-      const r = await fetch(
-        `${base}/api/v1/videos/${videoId}?fields=adaptiveFormats`,
-        { signal: AbortSignal.timeout(6000) }
-      );
-      if (!r.ok) continue;
-      const data = await r.json();
-      const formats = (data.adaptiveFormats || []).filter(f => (f.type||'').startsWith('audio/mp4'));
-      if (formats.length) return formats[formats.length - 1].url;
-    } catch { continue; }
-  }
-  return null;
-}
-
 // ── Search ────────────────────────────────────────────────────────────────────
 async function search(q) {
   q = q.trim(); if (!q) return;
   hideSug();
   $('spinner').classList.remove('hidden');
-  $('errMsg').classList.add('hidden');
+  showErr('Searching… (may take 15–30s first time)', '#1db954');
   $('resultsList').innerHTML = '';
   document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
 
   const key = q.toLowerCase();
-  if (cache.has(key)) { queue=[...cache.get(key)]; renderList(); $('spinner').classList.add('hidden'); return; }
-
-  let tracks = await invSearch(q);
-
-  if (!tracks?.length) {
-    showErr('No results found. Try a different search.');
-    $('spinner').classList.add('hidden');
-    return;
+  if (cache.has(key)) {
+    queue = [...cache.get(key)]; renderList();
+    $('spinner').classList.add('hidden'); hideErr(); return;
   }
 
-  queue = tracks;
-  if (cache.size > 50) cache.clear();
-  cache.set(key, [...queue]);
-  renderList();
+  try {
+    const ctrl = new AbortController();
+    const tid = setTimeout(() => ctrl.abort(), 90000);
+    const r = await fetch(`${HF}/search?q=${encodeURIComponent(q)}`, { signal: ctrl.signal });
+    clearTimeout(tid);
+    if (!r.ok) throw new Error(`Server error ${r.status}`);
+    const d = await r.json();
+    if (d.error) throw new Error(d.error);
+    if (!d.tracks?.length) { showErr('No results found.'); $('spinner').classList.add('hidden'); return; }
+    queue = d.tracks;
+    if (cache.size > 30) cache.clear();
+    cache.set(key, [...queue]);
+    renderList(); hideErr();
+  } catch(e) {
+    if (e.name === 'AbortError') showErr('Search timed out — server is slow, try again');
+    else showErr('Search failed: ' + e.message);
+  }
   $('spinner').classList.add('hidden');
 }
 
@@ -111,18 +66,11 @@ async function playTrack(i) {
   showErr('Loading…', '#1db954');
 
   try {
-    // Try Invidious first (fast)
-    let streamUrl = await invStream(t.id);
-
-    // Fallback to HF backend
-    if (!streamUrl) {
-      const r = await fetch(`${HF}/stream?v=${encodeURIComponent(t.id)}`, { signal: AbortSignal.timeout(30000) });
-      const d = await r.json();
-      if (r.ok && d.url) streamUrl = d.url;
-    }
-
-    if (!streamUrl) throw new Error('Could not get audio stream');
-
+    const r = await fetch(`${HF}/stream?v=${encodeURIComponent(t.id)}`, { signal: AbortSignal.timeout(55000) });
+    const d = await r.json();
+    if (!r.ok || d.error) throw new Error(d.error || 'Stream failed');
+    const streamUrl = d.url;
+    if (!streamUrl) throw new Error('No stream URL');
     audio.src = streamUrl;
     audio.volume = volume / 100;
     audio.currentTime = 0;
