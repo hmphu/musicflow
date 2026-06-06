@@ -1,6 +1,6 @@
 'use strict';
 
-// ── HuggingFace backend — search + stream ────────────────────────────────────
+// ── HuggingFace backend — search only ────────────────────────────────────────
 const HF = 'https://sumit9922-musicflow-backend.hf.space';
 
 // ── State ─────────────────────────────────────────────────────────────────────
@@ -49,6 +49,64 @@ async function search(q) {
   $('spinner').classList.add('hidden');
 }
 
+// ── YouTube iframe player ─────────────────────────────────────────────────────
+let ytPlayer = null;
+let ytReady = false;
+
+function initYT() {
+  if (document.getElementById('yt-api-script')) return;
+  const s = document.createElement('script');
+  s.id = 'yt-api-script';
+  s.src = 'https://www.youtube.com/iframe_api';
+  document.head.appendChild(s);
+}
+
+window.onYouTubeIframeAPIReady = function() {
+  ytReady = true;
+  const container = document.getElementById('yt-container');
+  ytPlayer = new YT.Player('yt-iframe', {
+    height: '1', width: '1',
+    playerVars: { autoplay: 1, controls: 0, disablekb: 1, fs: 0, rel: 0, modestbranding: 1 },
+    events: {
+      onStateChange: e => {
+        if (e.data === YT.PlayerState.PLAYING) { setPlayUI(true); startYTProgress(); }
+        if (e.data === YT.PlayerState.PAUSED)  { setPlayUI(false); }
+        if (e.data === YT.PlayerState.ENDED)   { setPlayUI(false); stopYTProgress(); if(isRepeat){ytPlayer.playVideo();}else playNext(); }
+      }
+    }
+  });
+};
+
+function playViaIframe(videoId, title, channel, thumb) {
+  if (!ytReady || !ytPlayer) {
+    // Retry after YT API loads
+    setTimeout(() => playViaIframe(videoId, title, channel, thumb), 500);
+    return;
+  }
+  ytPlayer.loadVideoById({ videoId, startSeconds: 0 });
+  setPlayUI(true);
+  startYTProgress();
+}
+
+let ytProgTimer = null;
+function startYTProgress() {
+  stopYTProgress();
+  ytProgTimer = setInterval(() => {
+    if (!ytPlayer || !ytPlayer.getDuration) return;
+    const cur = ytPlayer.getCurrentTime() || 0;
+    const dur = ytPlayer.getDuration() || 0;
+    if (dur > 0) {
+      const pct = (cur/dur)*100;
+      $('progFill').style.width = pct+'%';
+      $('progRange').value = pct;
+      $('progRange').dataset.dur = dur;
+      $('curTime').textContent = fmt(cur);
+      $('totTime').textContent = fmt(dur);
+    }
+  }, 1000);
+}
+function stopYTProgress() { if(ytProgTimer){clearInterval(ytProgTimer);ytProgTimer=null;} }
+
 // ── Play ──────────────────────────────────────────────────────────────────────
 async function playTrack(i) {
   if (i < 0 || i >= queue.length) return;
@@ -67,17 +125,8 @@ async function playTrack(i) {
 
   try {
     showErr('Loading…', '#1db954');
-    // Get stream URL from HF, then play via HF proxy (avoids CORS on googlevideo.com)
-    const r = await fetch(`${HF}/stream?v=${encodeURIComponent(t.id)}`, { signal: AbortSignal.timeout(55000) });
-    const d = await r.json();
-    if (!r.ok || d.error) throw new Error(d.error || 'Stream failed');
-    if (!d.url) throw new Error('No stream URL');
-    // Play via proxy so CORS is not an issue
-    const proxyUrl = `${HF}/proxy?url=${encodeURIComponent(d.url)}`;
-    audio.src = proxyUrl;
-    audio.volume = volume / 100;
-    audio.currentTime = 0;
-    await audio.play();
+    // Use YouTube iframe embed — works from any network, no server needed
+    playViaIframe(t.id, t.title, t.channel, t.thumb);
     hideErr();
     updateMediaSession(t.title, t.channel, t.thumb);
     localStorage.setItem('mf_np', JSON.stringify(t));
@@ -87,17 +136,20 @@ async function playTrack(i) {
 
 function playNext() {
   if (!queue.length) return;
+  stopYTProgress();
   if (isShuffle) { let n; do{n=Math.floor(Math.random()*queue.length);}while(queue.length>1&&n===currentIndex); playTrack(n); }
   else playTrack((currentIndex+1)%queue.length);
 }
 function playPrev() {
   if (!queue.length) return;
-  if (audio.currentTime > 3) { audio.currentTime=0; return; }
+  if (ytPlayer && ytPlayer.getCurrentTime && ytPlayer.getCurrentTime() > 3) { ytPlayer.seekTo(0); return; }
   playTrack((currentIndex-1+queue.length)%queue.length);
 }
 function togglePlay() {
   if (currentIndex===-1&&queue.length) { playTrack(0); return; }
-  audio.paused ? audio.play() : audio.pause();
+  if (!ytPlayer) return;
+  if (isPlaying) { ytPlayer.pauseVideo(); setPlayUI(false); }
+  else { ytPlayer.playVideo(); setPlayUI(true); }
 }
 
 // ── Audio events ──────────────────────────────────────────────────────────────
@@ -177,7 +229,8 @@ function renderPlaylists() {
 
 // ── Volume ────────────────────────────────────────────────────────────────────
 function setVol(v) {
-  volume=Math.max(0,Math.min(100,v)); audio.volume=volume/100;
+  volume=Math.max(0,Math.min(100,v));
+  if (ytPlayer && ytPlayer.setVolume) ytPlayer.setVolume(volume);
   $('volSlider').value=volume;
   $('volSlider').style.background=`linear-gradient(to right,var(--green) 0%,var(--green) ${volume}%,var(--bg3) ${volume}%,var(--bg3) 100%)`;
   localStorage.setItem('mf_vol',volume);
@@ -211,7 +264,7 @@ $('nextBtn').addEventListener('click',playNext);
 $('shuffleBtn').addEventListener('click',()=>{isShuffle=!isShuffle;$('shuffleBtn').classList.toggle('active',isShuffle);});
 $('repeatBtn').addEventListener('click',()=>{isRepeat=!isRepeat;$('repeatBtn').classList.toggle('active',isRepeat);});
 $('volSlider').addEventListener('input',e=>setVol(parseInt(e.target.value)));
-$('progRange').addEventListener('input',e=>{const dur=parseFloat($('progRange').dataset.dur||0);if(dur)audio.currentTime=(parseFloat(e.target.value)/100)*dur;});
+$('progRange').addEventListener('input',e=>{const dur=parseFloat($('progRange').dataset.dur||0);if(dur&&ytPlayer&&ytPlayer.seekTo)ytPlayer.seekTo((parseFloat(e.target.value)/100)*dur,true);});
 $('lyricsBtn').addEventListener('click',()=>{$('playlistSheet').classList.add('hidden');$('lyricsSheet').classList.toggle('hidden');if(!$('lyricsSheet').classList.contains('hidden')&&currentIndex>=0)fetchLyrics(queue[currentIndex].title,queue[currentIndex].channel);});
 $('closeLyrics').addEventListener('click',()=>$('lyricsSheet').classList.add('hidden'));
 $('playlistBtn').addEventListener('click',()=>{$('lyricsSheet').classList.add('hidden');$('playlistSheet').classList.toggle('hidden');if(!$('playlistSheet').classList.contains('hidden'))renderPlaylists();});
@@ -238,6 +291,7 @@ async function loadUrl(url) {
 }
 
 // ── Init ──────────────────────────────────────────────────────────────────────
+initYT(); // load YouTube IFrame API
 setVol(volume);
 try { const s=JSON.parse(localStorage.getItem('mf_np')||'null'); if(s){$('trackTitle').textContent=s.title||'No track selected';$('trackArtist').textContent=s.channel||'—';if(s.thumb)$('trackThumb').src=s.thumb;} } catch {}
 search('top hits 2025');
