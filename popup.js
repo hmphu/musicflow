@@ -160,8 +160,7 @@ async function playTrack(index) {
   });
 
   // Pre-load radio queue in background so Next is instant (uses yt-dlp, no API quota)
-  // Only load if queue has just 1 track (direct play, not from a search result list)
-  if (!radioQueue.length && queue.length <= 1) loadRadioQueue(t.id);
+  if (!radioQueue.length) loadRadioQueue(t.id);
 
   // Auto-fetch lyrics if lyrics panel is open
   if (!lyricsPanel.classList.contains('hidden')) fetchLyrics(t.title, t.channel);
@@ -187,16 +186,31 @@ async function loadRadioQueue(videoId) {
 
 // ── Next / Prev — simple, instant, always works ──────────────────────────────
 function playNext() {
-  if (!queue.length) return;
   if (isShuffle) {
-    // pick random, never same as current
-    if (queue.length === 1) { playTrack(0); return; }
+    if (queue.length <= 1) return;
     let n;
     do { n = Math.floor(Math.random() * queue.length); } while (n === currentIndex);
     playTrack(n);
-  } else {
-    playTrack((currentIndex + 1) % queue.length);
+    return;
   }
+
+  // If there's a next item in queue, play it
+  if (currentIndex < queue.length - 1) {
+    playTrack(currentIndex + 1);
+    return;
+  }
+
+  // Queue exhausted — pull from radioQueue
+  if (radioQueue.length) {
+    const next = radioQueue.shift();
+    queue.push(next);
+    renderList();
+    playTrack(queue.length - 1);
+    return;
+  }
+
+  // Nothing left — wrap back to start
+  if (queue.length) playTrack(0);
 }
 
 function playPrev() {
@@ -205,7 +219,9 @@ function playPrev() {
   const cur = dur * parseFloat(progressRange.value) / 100;
   // If more than 3s into song, restart it; otherwise go back
   if (cur > 3) { send({ cmd: 'SEEK', time: 0 }); return; }
-  playTrack((currentIndex - 1 + queue.length) % queue.length);
+  const prevIdx = currentIndex - 1;
+  if (prevIdx >= 0) playTrack(prevIdx);
+  else playTrack(0); // already at first, restart it
 }
 
 async function togglePlay() {
@@ -508,19 +524,22 @@ function renderUpNext() {
     upnextList.appendChild(nowLi);
   }
 
-  // Coming up from radioQueue
-  const upcoming = radioQueue.slice(0, 15);
+  // Show remaining items from search queue first
+  const queueUpcoming = queue.slice(currentIndex + 1);
+  // Then radio queue
+  const radioUpcoming = radioQueue.slice(0, Math.max(0, 15 - queueUpcoming.length));
+  const upcoming = [...queueUpcoming, ...radioUpcoming];
+
   if (!upcoming.length) {
     const empty = document.createElement('li');
     empty.className = 'playlist-empty';
-    empty.textContent = radioQueue.length === 0
-      ? 'Play a song to load up next tracks.'
-      : 'No more songs queued.';
+    empty.textContent = 'No more tracks queued.';
     upnextList.appendChild(empty);
     return;
   }
 
   upcoming.forEach((t, i) => {
+    const isFromQueue = i < queueUpcoming.length;
     const li = document.createElement('li');
     li.className = 'playlist-item';
     li.innerHTML = `
@@ -530,16 +549,15 @@ function renderUpNext() {
         <div class="playlist-item-name">${esc(t.title)}</div>
         <div class="playlist-item-count">${esc(t.channel)}</div>
       </div>`;
-    // Click to play immediately
     li.addEventListener('click', () => {
-      const idx = queue.findIndex(q => q.id === t.id);
-      if (idx !== -1) {
-        radioQueue.splice(i, 1);
+      if (isFromQueue) {
+        const qIdx = currentIndex + 1 + i;
         upnextPanel.classList.add('hidden');
-        playTrack(idx);
+        playTrack(qIdx);
       } else {
-        queue.push(t);
-        radioQueue.splice(i, 1);
+        const radioIdx = i - queueUpcoming.length;
+        const track = radioQueue.splice(radioIdx, 1)[0];
+        queue.push(track);
         renderList();
         upnextPanel.classList.add('hidden');
         playTrack(queue.length - 1);
