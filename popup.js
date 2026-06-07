@@ -185,6 +185,8 @@ async function loadRadioQueue(videoId) {
 }
 
 // ── Next / Prev — simple, instant, always works ──────────────────────────────
+const baseTitle = t => t.title.replace(/\(.*?\)|\[.*?\]|-\s*(lyrics|official|video|audio|slowed|reverb|hd|4k|full).*/gi,'').trim().toLowerCase();
+
 function playNext() {
   if (isShuffle) {
     if (queue.length <= 1) return;
@@ -194,13 +196,14 @@ function playNext() {
     return;
   }
 
-  // If there's a next item in queue, play it
-  if (currentIndex < queue.length - 1) {
-    playTrack(currentIndex + 1);
-    return;
+  const curBase = queue[currentIndex] ? baseTitle(queue[currentIndex]) : '';
+
+  // Find next song in queue that has a different base title
+  for (let i = currentIndex + 1; i < queue.length; i++) {
+    if (baseTitle(queue[i]) !== curBase) { playTrack(i); return; }
   }
 
-  // Queue exhausted — pull from radioQueue
+  // Queue exhausted — pull from radioQueue (already different songs)
   if (radioQueue.length) {
     const next = radioQueue.shift();
     queue.push(next);
@@ -209,8 +212,8 @@ function playNext() {
     return;
   }
 
-  // Nothing left — wrap back to start
-  if (queue.length) playTrack(0);
+  // Nothing left — just go to next even if same title
+  if (currentIndex < queue.length - 1) playTrack(currentIndex + 1);
 }
 
 function playPrev() {
@@ -524,10 +527,24 @@ function renderUpNext() {
     upnextList.appendChild(nowLi);
   }
 
-  // Show remaining items from search queue first
-  const queueUpcoming = queue.slice(currentIndex + 1);
-  // Then radio queue
-  const radioUpcoming = radioQueue.slice(0, Math.max(0, 15 - queueUpcoming.length));
+  // Show remaining items from search queue first — deduplicate by base title
+  const baseName = t => t.title.replace(/\(.*?\)|\[.*?\]|-\s*(lyrics|official|video|audio|slowed|reverb|hd|4k|full).*/gi,'').trim().toLowerCase();
+  const seenTitles = new Set();
+  if (currentIndex >= 0 && queue[currentIndex]) seenTitles.add(baseName(queue[currentIndex]));
+
+  const queueUpcoming = queue.slice(currentIndex + 1).filter(t => {
+    const b = baseName(t);
+    if (seenTitles.has(b)) return false;
+    seenTitles.add(b);
+    return true;
+  });
+  // Then radio queue — also deduplicated
+  const radioUpcoming = radioQueue.filter(t => {
+    const b = baseName(t);
+    if (seenTitles.has(b)) return false;
+    seenTitles.add(b);
+    return true;
+  }).slice(0, Math.max(0, 15 - queueUpcoming.length));
   const upcoming = [...queueUpcoming, ...radioUpcoming];
 
   if (!upcoming.length) {
