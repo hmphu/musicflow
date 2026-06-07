@@ -1,6 +1,7 @@
 'use strict';
 
 const HF = 'https://sumit9922-musicflow-backend.hf.space';
+const APP_VERSION = '5';  // bump this number on every update
 
 let queue = [], idx = -1, isShuffle = false, isRepeat = false;
 let vol = parseInt(localStorage.getItem('mf_vol') || '80');
@@ -252,3 +253,48 @@ $('urlLoadBtn').addEventListener('click', async () => {
 setVol(vol);
 try { const s=JSON.parse(localStorage.getItem('mf_np')||'null'); if(s){$('trackTitle').textContent=s.title||'No track selected';$('trackArtist').textContent=s.channel||'—';if(s.thumb)$('trackThumb').src=s.thumb;} } catch {}
 search('top hits 2025');
+
+// ── Update checker ────────────────────────────────────────────────────────────
+(async function checkUpdate() {
+  try {
+    const r = await fetch(
+      `https://sumitboii.github.io/musicflow/mobile/version.json?t=${Date.now()}`,
+      { cache: 'no-store', signal: AbortSignal.timeout(5000) }
+    );
+    if (!r.ok) return;
+    const d = await r.json();
+    if (d.version && d.version !== APP_VERSION) {
+      showUpdateBanner(d.version, d.note || '');
+    }
+  } catch {}
+})();
+
+function showUpdateBanner(newVer, note) {
+  const banner = document.createElement('div');
+  banner.id = 'updateBanner';
+  banner.innerHTML = `
+    <span>⬆ Update available (v${newVer})${note ? ' — ' + note : ''}</span>
+    <button id="updateNowBtn">Update</button>
+    <button id="updateDismissBtn">✕</button>`;
+  banner.style.cssText = `
+    position:fixed;top:0;left:0;right:0;z-index:9999;
+    display:flex;align-items:center;justify-content:space-between;gap:10px;
+    background:#1db954;color:#000;padding:10px 16px;
+    font-size:13px;font-weight:600;
+    box-shadow:0 2px 12px rgba(0,0,0,.4);
+    padding-top:calc(10px + env(safe-area-inset-top,0px));`;
+  document.body.appendChild(banner);
+
+  document.getElementById('updateNowBtn').style.cssText =
+    'background:#000;color:#1db954;border:none;border-radius:12px;padding:5px 14px;font-size:12px;font-weight:700;cursor:pointer;flex-shrink:0;';
+  document.getElementById('updateDismissBtn').style.cssText =
+    'background:none;border:none;color:#000;font-size:16px;cursor:pointer;padding:0 4px;flex-shrink:0;';
+
+  document.getElementById('updateNowBtn').addEventListener('click', () => {
+    // Hard reload — clears cache and fetches latest version
+    window.location.href = window.location.href.split('?')[0] + '?v=' + newVer;
+  });
+  document.getElementById('updateDismissBtn').addEventListener('click', () => {
+    banner.remove();
+  });
+}
