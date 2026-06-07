@@ -36,10 +36,11 @@ _radio_cache  = {}
 def find_mpv():
     """Find mpv executable."""
     candidates = [
-        "mpv",
+        r"C:\Program Files\MPV Player\mpv.exe",
         r"C:\Program Files\mpv\mpv.exe",
         r"C:\Program Files (x86)\mpv\mpv.exe",
         os.path.join(os.path.dirname(__file__), "mpv.exe"),
+        "mpv",
     ]
     for c in candidates:
         try:
