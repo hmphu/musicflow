@@ -1,10 +1,13 @@
 """
-MusicFlow Backend — HuggingFace Spaces
-Search + Stream via yt-dlp
+MusicFlow Backend — HuggingFace Spaces (MPV-style extraction)
+Uses yt-dlp with the same flags MPV uses internally:
+  - extractor-args youtube:player_client=web
+  - proper user-agent
+  - best audio format selection
 """
 import subprocess, json, sys, re, os
 import urllib.request, urllib.parse
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, Response, stream_with_context
 from flask_cors import CORS
 
 app = Flask(__name__)
@@ -13,9 +16,19 @@ CORS(app, origins=["*"])
 _stream_cache = {}
 _search_cache = {}
 
+# ── yt-dlp with MPV-style flags ────────────────────────────────────────────────
 def ytdlp(*args, timeout=55):
+    """Run yt-dlp with browser-mimicking flags to bypass YouTube rate limits."""
+    base_args = [
+        sys.executable, "-m", "yt_dlp",
+        "--no-warnings", "--quiet",
+        # Mimic a real browser client — same approach MPV uses internally
+        "--extractor-args", "youtube:player_client=web",
+        "--user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
+        "--add-header", "Accept-Language:en-US,en;q=0.9",
+    ]
     r = subprocess.run(
-        [sys.executable, "-m", "yt_dlp", "--no-warnings", "--quiet", *args],
+        base_args + list(args),
         capture_output=True, text=True, timeout=timeout,
     )
     return r.stdout.strip(), r.returncode
@@ -23,7 +36,7 @@ def ytdlp(*args, timeout=55):
 
 @app.route("/ping")
 def ping():
-    return jsonify({"ok": True, "msg": "MusicFlow running on HF Spaces"})
+    return jsonify({"ok": True, "msg": "MusicFlow MPV-style HF backend"})
 
 
 @app.route("/search")
@@ -38,26 +51,26 @@ def search():
 
     try:
         out, code = ytdlp(
-            f"ytsearch10:{query}", "--flat-playlist",
+            f"ytsearch15:{query}", "--flat-playlist",
             "--print", "%(id)s|||%(title)s|||%(channel)s|||%(duration)s|||%(thumbnails.0.url)s",
-            timeout=55,
+            timeout=50,
         )
         tracks = []
         for line in out.splitlines():
             p = line.split("|||")
             if len(p) < 2: continue
             vid, title = p[0].strip(), p[1].strip()
-            ch = p[2].strip() if len(p) > 2 else ""
+            ch    = p[2].strip() if len(p) > 2 else ""
             dur_s = p[3].strip() if len(p) > 3 else ""
             thumb = p[4].strip() if len(p) > 4 else ""
-            if not thumb or thumb in ("NA","None",""):
+            if not thumb or thumb in ("NA", "None", ""):
                 thumb = f"https://i.ytimg.com/vi/{vid}/mqdefault.jpg"
             dur = ""
             try:
                 d = int(float(dur_s)); dur = f"{d//60}:{str(d%60).zfill(2)}"
             except: pass
             if vid and title:
-                tracks.append({"id":vid,"title":title,"channel":ch,"thumb":thumb,"dur":dur})
+                tracks.append({"id": vid, "title": title, "channel": ch, "thumb": thumb, "dur": dur})
 
         if not tracks:
             return jsonify({"error": "No results"}), 404
@@ -81,8 +94,11 @@ def stream():
         return jsonify(_stream_cache[video_id])
     try:
         out, code = ytdlp(
-            "--no-playlist", "--format", "bestaudio[ext=m4a]/bestaudio/best",
-            "--get-url", f"https://www.youtube.com/watch?v={video_id}", timeout=55,
+            "--no-playlist",
+            "--format", "bestaudio[ext=m4a]/bestaudio/best",
+            "--get-url",
+            f"https://www.youtube.com/watch?v={video_id}",
+            timeout=50,
         )
         if not out or code != 0:
             return jsonify({"error": "Could not extract URL"}), 500
@@ -98,17 +114,17 @@ def stream():
 
 @app.route("/proxy")
 def proxy():
-    """Proxy the audio stream bytes through HF — phone plays directly, no CORS issues."""
+    """Proxy audio bytes through HF so phone can play without CORS issues."""
     import urllib.request as ur
-    from flask import Response, stream_with_context
     audio_url = request.args.get("url", "").strip()
     if not audio_url:
         return jsonify({"error": "Missing url"}), 400
     try:
-        req_headers = {"User-Agent": "Mozilla/5.0"}
-        if request.headers.get("Range"):
-            req_headers["Range"] = request.headers.get("Range")
-        req = ur.Request(audio_url, headers=req_headers)
+        headers = {
+            "User-Agent": "Mozilla/5.0",
+            "Range": request.headers.get("Range", "bytes=0-"),
+        }
+        req = ur.Request(audio_url, headers=headers)
         resp = ur.urlopen(req, timeout=15)
         def generate():
             while True:
@@ -148,6 +164,34 @@ def suggest():
         return jsonify({"suggestions": [], "error": str(e)})
 
 
+@app.route("/radio")
+def radio():
+    video_id = request.args.get("v", "").strip()
+    if not video_id:
+        return jsonify({"error": "Missing video ID"}), 400
+    radio_url = f"https://www.youtube.com/watch?v={video_id}&list=RD{video_id}&start_radio=1"
+    try:
+        out, _ = ytdlp(
+            "--flat-playlist",
+            "--print", "%(id)s|||%(title)s|||%(channel)s|||%(thumbnails.0.url)s",
+            "--playlist-end", "25", radio_url, timeout=35,
+        )
+        tracks = []
+        for line in out.splitlines():
+            p = line.split("|||")
+            if len(p) < 2: continue
+            vid, title = p[0].strip(), p[1].strip()
+            ch    = p[2].strip() if len(p) > 2 else ""
+            thumb = p[3].strip() if len(p) > 3 else ""
+            if not thumb or thumb == "NA":
+                thumb = f"https://i.ytimg.com/vi/{vid}/mqdefault.jpg"
+            if vid and title and vid != video_id:
+                tracks.append({"id": vid, "title": title, "channel": ch, "thumb": thumb})
+        return jsonify({"tracks": tracks})
+    except Exception as e:
+        return jsonify({"tracks": [], "error": str(e)})
+
+
 @app.route("/playlist")
 def playlist():
     url = request.args.get("url", "").strip()
@@ -157,19 +201,19 @@ def playlist():
         out, _ = ytdlp(
             "--flat-playlist",
             "--print", "%(id)s|||%(title)s|||%(channel)s|||%(thumbnails.0.url)s",
-            "--playlist-end", "30", url, timeout=55,
+            "--playlist-end", "30", url, timeout=50,
         )
         tracks = []
         for line in out.splitlines():
             p = line.split("|||")
             if len(p) < 2: continue
             vid, title = p[0].strip(), p[1].strip()
-            ch = p[2].strip() if len(p) > 2 else ""
+            ch    = p[2].strip() if len(p) > 2 else ""
             thumb = p[3].strip() if len(p) > 3 else ""
             if not thumb or thumb == "NA":
                 thumb = f"https://i.ytimg.com/vi/{vid}/mqdefault.jpg"
             if vid and title:
-                tracks.append({"id":vid,"title":title,"channel":ch,"thumb":thumb})
+                tracks.append({"id": vid, "title": title, "channel": ch, "thumb": thumb})
         if not tracks:
             return jsonify({"error": "No tracks found"}), 404
         return jsonify({"tracks": tracks})
