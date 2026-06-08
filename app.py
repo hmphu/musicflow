@@ -36,7 +36,7 @@ def ytdlp(*args, timeout=55):
 
 @app.route("/ping")
 def ping():
-    return jsonify({"ok": True, "msg": "MusicFlow MPV-style HF backend"})
+    return jsonify({"ok": True, "msg": "MusicFlow v8 MPV-style backend", "ready": True})
 
 
 @app.route("/search")
