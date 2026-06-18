@@ -350,7 +350,7 @@ def stream():
         return jsonify({"error": "Missing video ID"}), 400
     try:
         out, code = ytdlp(
-            "--no-playlist", "--format", "bestaudio[ext=m4a]/bestaudio/best",
+            "--no-playlist", "--format", "bestaudio/best",
             "--get-url", f"https://www.youtube.com/watch?v={video_id}", timeout=20,
         )
         if not out or code != 0:

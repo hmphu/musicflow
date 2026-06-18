@@ -95,7 +95,7 @@ def stream():
     try:
         out, code = ytdlp(
             "--no-playlist",
-            "--format", "bestaudio[ext=m4a]/bestaudio/best",
+            "--format", "bestaudio/best",
             "--get-url",
             f"https://www.youtube.com/watch?v={video_id}",
             timeout=50,
