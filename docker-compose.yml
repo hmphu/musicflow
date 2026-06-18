@@ -1,0 +1,6 @@
+services:
+  backend:
+    build: .
+    ports:
+      - "7842:7842"
+    restart: always
