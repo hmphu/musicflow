@@ -23,7 +23,7 @@ def ytdlp(*args, timeout=55):
         sys.executable, "-m", "yt_dlp",
         "--no-warnings", "--quiet",
         # Mimic a real browser client — same approach MPV uses internally
-        "--extractor-args", "youtube:player_client=web",
+            "--extractor-args", "youtube:player_client=android",
         "--user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
         "--add-header", "Accept-Language:en-US,en;q=0.9",
     ]
