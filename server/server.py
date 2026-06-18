@@ -182,7 +182,14 @@ def ensure_mpv():
 # ── yt-dlp helpers ─────────────────────────────────────────────────────────────
 def ytdlp(*args, timeout=25):
     r = subprocess.run(
-        [sys.executable, "-m", "yt_dlp", "--no-warnings", "--quiet", *args],
+        [
+            sys.executable, "-m", "yt_dlp",
+            "--no-warnings", "--quiet",
+            "--extractor-args", "youtube:player_client=web",
+            "--user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
+            "--add-header", "Accept-Language:en-US,en;q=0.9",
+            *args,
+        ],
         capture_output=True, text=True, timeout=timeout,
     )
     return r.stdout.strip(), r.returncode
